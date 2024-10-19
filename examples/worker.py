@@ -1,7 +1,7 @@
 # These five lines are all you need for the worker script.
 import sys
 sys.path.append('../hermes/')
-import BaselineWorker
+import HermesWorker
 
-worker = BaselineWorker.BaselineWorker()
+worker = HermesWorker.HermesWorker()
 worker.beginTraining()

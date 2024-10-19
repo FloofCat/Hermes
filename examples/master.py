@@ -1,7 +1,7 @@
 # These three lines are required.
 import sys
 sys.path.append('../hermes/')
-import BaselineMaster
+import HermesMaster
 
 
 # # External libraries for your use
@@ -46,6 +46,6 @@ import BaselineMaster
 
 
 # These two lines are necessary to initialize and begin the framework.
-baseline = BaselineMaster.BaselineDistributedML(model, x_train, y_train, x_test, y_test, 25, 0.1)
-baseline.start()
+hermes = HermesMaster.HermesMaster(model, x_train, y_train, x_test, y_test, 25, 0.1, 10)
+hermes.start()
 
