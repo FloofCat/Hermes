@@ -1,14 +1,14 @@
+from kafka import KafkaConsumer
 import json
 import getpass
 import time
 import gzip
 import pickle
-from kafka import KafkaConsumer
 import multiprocessing
 
 class CommunicationWorker:
     def __init__(self, api_worker):
-        with open('./settings/master.json') as f:
+        with open('../conf/master.json') as f:
             self.master_config = json.load(f)
             
         self.api_worker = api_worker

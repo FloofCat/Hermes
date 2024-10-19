@@ -7,7 +7,7 @@ class APINode:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
         
-        with open('./settings/master.json') as f:
+        with open('../conf/master.json') as f:
             self.master_config = json.load(f)
             
         connection = "tcp://" + self.master_config["master"]["ip"] + ":5555"  

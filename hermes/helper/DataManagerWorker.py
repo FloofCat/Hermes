@@ -84,6 +84,8 @@ class DataManagerWorker:
             self.api_worker.setModelPresent(self.node_id, True)
 
             if self.x_currentBatch is None:
+                # Agreeably, this is a bit of a hacky way to check if the dataset exists; however, it is the most efficient way to do so
+                # Until I get another idea, this will have to do
                 num_files = len([file for file in os.listdir(self.path + 'hermes/data/dataset-files/') if file.endswith('.xlsx')])
                 
                 if num_files > 0:

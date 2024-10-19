@@ -1,17 +1,10 @@
-import os, sys
-
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/api/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/helper/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/agent/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/agent/helper/')
-
-import API
-import APINode
-import Communication
-import Logger
-import NodeRegistry
-import Settings
-import DataManager
+import api.API as API
+import api.APINode as APINode
+import helper.Communication as Communication
+import helper.Logger as Logger
+import helper.NodeRegistry as NodeRegistry
+import helper.DataManager as DataManager
+import helper.Settings as Settings
 
 # External libraries
 import threading
@@ -21,11 +14,12 @@ import numpy as np
 import zipfile
 import threading
 import json
+import os
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-class BaselineDistributedML:
-    def __init__(self, model, x_train, y_train, x_test, y_test, convergence_iter, learning_rate):
+class HermesMaster:
+    def __init__(self, model, x_train, y_train, x_test, y_test, convergence_iter, learning_rate, num_classes):
         # Initialize model and dataset
         self.model = model
         self.x_train = x_train
@@ -34,13 +28,14 @@ class BaselineDistributedML:
         self.y_test = y_test
         self.currentEpoch = 0
         self.learning_rate = learning_rate
+        self.num_classes = num_classes
         
         # Initialize helper classes
         self.api = API.API()
         self.api_master = APINode.APINode("master")
         self.logger = Logger.Logging(self.api_master, "master")
-        self.node_registry = NodeRegistry.NodeRegistry("./settings/config.json")
-        self.settings = Settings.Settings("./settings/settings.json", self.node_registry)
+        self.node_registry = NodeRegistry.NodeRegistry("../conf/config.json")
+        self.settings = Settings.Settings("../conf/settings.json", self.node_registry)
         self.communication = Communication.Communication(self.node_registry, self.settings.get_protocol())
         self.data_manager = DataManager.DataManager(self.logger, self.x_train, self.y_train, self.settings, self.model, self.communication, self.api_master)
         self.api_framework = self.api.api_framework
@@ -51,8 +46,7 @@ class BaselineDistributedML:
         self.connected_nodes = None
         self.saved_grads = []
         self.base_model = model
-        self.mem_threshold = {}
-        tf.keras.models.save_model(self.base_model, './data/model-files/baseline_model.h5')
+        tf.keras.models.save_model(self.base_model, '../data/model-files/baseline_model.h5')
         
         # Convergence variables
         self.best_loss = None
@@ -67,12 +61,13 @@ class BaselineDistributedML:
         policy = tf.keras.mixed_precision.Policy('mixed_bfloat16')
         tf.keras.mixed_precision.set_global_policy(policy)
         
-        # BS
+        # Binary Search variables
         self.firstRun = True
         self.median = 0
         
         # TEMP LINE - NEED TO FIX - categorial
-        self.y_test = tf.keras.utils.to_categorical(self.y_test, 10)
+        self.y_test = tf.keras.utils.to_categorical(self.y_test, self.num_classes)
+
         self.logger.log("Master has been successfully initialized!")
     
     ##### SYNCHRONOUS TRAINING #####
@@ -148,7 +143,7 @@ class BaselineDistributedML:
         
     def updateCentralWeights(self, grads, node_id):
         self.saved_grads = self.aggregateGradients(grads, node_id)
-        self.model = tf.keras.models.load_model('./data/model-files/baseline_model.h5')
+        self.model = tf.keras.models.load_model('../data/model-files/baseline_model.h5')
         self.model.optimizer.apply_gradients(zip(self.saved_grads, self.model.trainable_variables))
         self.logger.manuallyCentralizeLogger("Model updated with aggregated gradients from node " + node_id)      
                 
@@ -160,9 +155,9 @@ class BaselineDistributedML:
             self.saved_grads = grads
         else:
             w1 = 1 / self.last_loss
-            print("Node model test: ---")
+            # print("Node model test: ---")
             tf.keras.backend.clear_session()
-            test_model = tf.keras.models.load_model('./data/model-files/baseline_model.h5')
+            test_model = tf.keras.models.load_model('../data/model-files/baseline_model.h5')
             test_model.optimizer.apply_gradients(zip(grads, test_model.trainable_variables))
             
             y_pred = test_model(self.x_test)
@@ -208,38 +203,11 @@ class BaselineDistributedML:
         self.api_framework.setBatchSize(node_id, valid_answers[0][0])
         return valid_answers[0]
     
-    def membinarySearch(self, mem_threshold, node_id):
-        # # Binary search for optimal batch size
-        # model_size = self.model.count_params()
-        # model_compression = 4
-        # model_size = model_size * model_compression
-        
-        # # Start binary search and if it lies in the [threshold-0.05 - threshold]% of the mem_av then that's our batch size.
-        # high = self.x_train.shape[0]
-        # # Memory (MB)
-        # node_av_mem = int(self.api_framework.getNodeMemory(node_id)) >> 20
-        
-        # if node_av_mem == -1:
-        #     return -1
-                
-        # while True: 
-        #     if high > self.x_train.shape[0]:
-        #         high = self.x_train.shape[0]
-        #         break
-            
-        #     if ((model_size * high) >> 20) > node_av_mem * mem_threshold[node_id]:
-        #         high = high // 2
-        #     elif((model_size * high) >> 20) < node_av_mem * (mem_threshold[node_id] - 0.05):
-        #         high = high + (high // 2)
-        #     else:
-        #         break
-        
-        # self.logger.manuallyCentralizeLogger("Optimal batch size for node " + node_id + " is " + str(high))
-        # self.logger.localLogger("Optimal batch size for node " + node_id + " is " + str(high))
-        self.api_framework.setBatchSize(node_id, 2500)  
+    def setDefaultBatchSize(self, node_id, batch_size):
+        self.api_framework.setBatchSize(node_id, batch_size)  
         self.api_framework.setMiniBatchSize(node_id, 16)
         self.logger.manuallyCentralizeLogger("Optimal mini batch size for node " + node_id + " is 16")
-        self.logger.manuallyCentralizeLogger("Optimal batch size for node " + node_id + " is 2500")
+        self.logger.manuallyCentralizeLogger("Optimal batch size for node " + node_id + " is " + str(batch_size))
         
         return 2500
     
@@ -303,26 +271,26 @@ class BaselineDistributedML:
     #### ARCHIVE FUNCTION ####
     def archiveEverything(self):
         str_datetime = time.strftime("%Y%m%d-%H%M%S")
-        with zipfile.ZipFile('./data/centralized-logs/logs_' + str_datetime + '.zip', 'w') as zipf:
-            for files in os.listdir('./data/centralized-logs/'):
+        with zipfile.ZipFile('../data/centralized-logs/logs_' + str_datetime + '.zip', 'w') as zipf:
+            for files in os.listdir('../data/centralized-logs/'):
                 if files.endswith('><.zip'):
-                    zipf.write('./data/centralized-logs/' + files, arcname='./' + files)
+                    zipf.write('../data/centralized-logs/' + files, arcname='./' + files)
                     
-            zipf.write('./data/device-logs/local-logs.txt', arcname='./master-logs.txt')
-            zipf.write('./data/centralized-logs/distml-central.txt', arcname='./distml-central.txt')
+            zipf.write('../data/device-logs/local-logs.txt', arcname='./master-logs.txt')
+            zipf.write('../data/centralized-logs/distml-central.txt', arcname='./distml-central.txt')
             
         # Clean up the directory
-        for files in os.listdir('./data/centralized-logs/'):
+        for files in os.listdir('../data/centralized-logs/'):
             if files.endswith('><.zip'):
-                os.remove('./data/centralized-logs/' + files)
+                os.remove('../data/centralized-logs/' + files)
                 
-        os.remove('./data/centralized-logs/distml-central.txt')
-        #os.remove('./data/api-logs/api-logs.txt')      
-        os.remove('./data/device-logs/local-logs.txt')
+        os.remove('../data/centralized-logs/distml-central.txt')
+        #os.remove('../data/api-logs/api-logs.txt')      
+        os.remove('../data/device-logs/local-logs.txt')
         
-        for files in os.listdir('./data/model-files/'):
+        for files in os.listdir('../data/model-files/'):
             if files.endswith('.h5'):
-                os.remove('./data/model-files/' + files)
+                os.remove('../data/model-files/' + files)
                 
     ################################
     #### TESTING FUNCTION ####
@@ -345,7 +313,6 @@ class BaselineDistributedML:
         self.storage = {}
         for node_id in self.connected_nodes:
             self.added_grads[node_id] = True
-            self.mem_threshold[node_id] = 0.85
             self.storage[node_id] = [2500]
         
         # Log for sync / async
@@ -369,7 +336,7 @@ class BaselineDistributedML:
             
         # First search 
         for node_id in self.connected_nodes:
-            size = self.membinarySearch(self.mem_threshold, node_id)
+            size = self.setDefaultBatchSize(node_id, 2500) # You can change this according to your node natures. 
             if size != -1:
                 self.batch_nodes[node_id] = size
                 self.settings.batch_nodes = self.batch_nodes

@@ -41,11 +41,6 @@ class APIFramework:
     self.logger("A device has requested the training times.")
     return self.training_times
   
-  #def removeTrainingTime(self, node_id):
-  #  self.logger("A device has removed the training time for node " + node_id + ".")
-  #  if node_id in self.training_times:
-  #    del self.training_times[node_id]
-  
   def isNeedsData(self, node_id):
     self.logger("A device has requested the data status of node " + node_id + ".")
     return node_id in self.needs_data
@@ -163,18 +158,18 @@ class APIFramework:
     if(self.api_logger == False):
       return
     logMessage = "[" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - API] - " + message
-    with open("./data/api-logs/api-logs.txt", "a") as f:
+    with open("../data/api-logs/api-logs.txt", "a") as f:
       f.write(logMessage + "\n")
       
   def archiveLastLogs(self):
     self.logger("The API is now closing.")
     """time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     
-    with zipfile.ZipFile("./data/api-logs/api-logs-" + str(time) + ".zip", "w") as z:
-      z.write("./data/api-logs/api-logs.txt")"""
+    with zipfile.ZipFile("../data/api-logs/api-logs-" + str(time) + ".zip", "w") as z:
+      z.write("../data/api-logs/api-logs.txt")"""
       
   def centralizedLogger(self, message, node_id):
     logMessage = "[" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " - " + node_id + "] - " + message
-    with open("./data/centralized-logs/distml-central.txt", "a") as f:
+    with open("../data/centralized-logs/distml-central.txt", "a") as f:
       f.write(logMessage + "\n")
 

@@ -1,3 +1,4 @@
+from kafka import KafkaProducer
 import pysftp
 import os
 import socket
@@ -5,7 +6,6 @@ import pandas as pd
 import json
 import gzip
 import pickle
-from kafka import KafkaProducer
 import uuid
 
 class Communication:
@@ -13,7 +13,7 @@ class Communication:
         self.node_registry = node_registry
         self.protocol = protocol
         
-        with open('./settings/master.json') as f:
+        with open('../conf/master.json') as f:
             self.master_config = json.load(f)
 
         if protocol.lower() == "kafka":
@@ -57,7 +57,8 @@ class Communication:
         
     def sendModel(self, node_id, model):
         self.sendModelSFTP(node_id, model)
-        
+    
+    # TODO: Implement Kafka protocol for sending models (low priority)
     def sendModelSFTP(self, node_id, model):
         ip = self.node_registry.get_node_ip(node_id)
         path = self.node_registry.get_node_path(node_id)
@@ -117,7 +118,8 @@ class Communication:
 
         # Create pickle dump of np_array
         data = gzip.compress(pickle.dumps(np_array))
-        # gzip.compress can cause bottleneck while compressing larger data (took ~15 seconds to compress the entire mnist training dataframe instead of the first 2000 elements)
+        # gzip.compress can cause bottleneck while compressing larger data 
+        # (took ~15 seconds to compress the entire mnist training dataframe instead of the first 2000 elements)
 
         data_size = len(data)
         batch_size = self.producer_config["batch_size"]

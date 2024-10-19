@@ -1,16 +1,10 @@
-import os, sys
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/api/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/helper/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/agent/')
-sys.path.append(os.path.abspath(os.path.dirname(__file__)) + '/agent/helper/')
-
-import APINode
-import CommunicationWorker
-import Logger
-import NodeRegistry
-import DataManagerWorker
-import TrainerWorker
-import Settings
+import api.APINode as APINode
+import helper.CommunicationWorker as CommunicationWorker
+import helper.Logger as Logger
+import helper.NodeRegistry as NodeRegistry
+import helper.DataManagerWorker as DataManagerWorker
+import helper.TrainerWorker as TrainerWorker
+import helper.Settings as Settings
 
 # External libraries
 import getpass
@@ -18,18 +12,19 @@ import os
 import psutil
 import numpy as np
 import tensorflow as tf
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-class BaselineWorker:
+# os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+class HermesWorker:
     def __init__(self):
         self.node_id = getpass.getuser()
         self.api_worker = APINode.APINode(self.node_id)
         self.communication = CommunicationWorker.CommunicationWorker(self.api_worker)
         self.logger = Logger.Logging(self.api_worker, self.node_id)
-        self.node_registry = NodeRegistry.NodeRegistry("./settings/config.json")
+        self.node_registry = NodeRegistry.NodeRegistry("../conf/config.json")
         self.data_manager = DataManagerWorker.DataManagerWorker(self.logger, self.node_registry, self.api_worker, self.communication)
         self.training = TrainerWorker.TrainerWorker(self.logger, self.data_manager)
-        self.settings = Settings.Settings("./settings/settings.json", self.node_registry)
+        self.settings = Settings.Settings("../conf/settings.json", self.node_registry)
         
         self.logger.log("Worker has been successfully initialized!")
         self.api_worker.setNodeTraining(self.node_id, False)

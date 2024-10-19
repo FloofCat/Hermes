@@ -1,4 +1,4 @@
-from APIFramework import APIFramework
+from .APIFramework import APIFramework
 import zmq
 import json
 
@@ -11,7 +11,7 @@ class API:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         
-        with open('./settings/master.json') as f:
+        with open('../conf/master.json') as f:
             self.master_config = json.load(f)
             
         connection = "tcp://" + self.master_config["master"]["ip"] + ":5555" 

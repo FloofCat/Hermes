@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class DataManager:
     def __init__(self, logger, x_df, y_df, settings, model, communication, api_master):
         self.logger = logger
@@ -23,10 +22,6 @@ class DataManager:
         return self.current_row < self.size
     
     def get_next_batch_async(self, node_id):
-        """
-        Input: batch_size - the size of the batch
-        Output: a dictionary containing the next batch of data
-        """
         x_train, y_train = self.reset_data()
         endRow = self.settings.get_batch_node(node_id)
         
@@ -48,22 +43,9 @@ class DataManager:
         return {"x_train": batch, "y_train": y_batch}
     
     def send_model(self, node_id, model):
-        """
-        Input: node_id - the id of the node to send the model to
-        Output: None
-        
-        This function sends the model to the specified node using the specified protocol.
-        """
         self.communication.sendModel(node_id, model)
     
     def send_batch_node_async(self, node_id):
-        """
-        Input: node_id - the id of the node to send the data to
-               df - the dataframe to send
-        Output: None
-        
-        This function sends the dataframe to the specified node using the specified protocol.
-        """
         protocol = self.settings.get_protocol()
         df = self.get_next_batch_async(node_id)
         self.communication.sendDataFrame(node_id, df, protocol)
