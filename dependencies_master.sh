@@ -30,10 +30,10 @@ mkdir distml
 sudo apt install openjdk-16-jre-headless
 
 # Install Kafka
-wget https://downloads.apache.org/kafka/3.7.0/kafka_2.13-3.7.0.tgz
-tar xvf kafka_2.13-3.7.0.tgz
+wget https://downloads.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz
+tar xvf kafka_2.13-3.8.0.tgz
 
 echo "listeners=INTERNAL://0.0.0.0:9092
 listener.security.protocol.map=INTERNAL:PLAINTEXT
 advertised.listeners=INTERNAL://[REPLACE-WITH-MASTER-IP]:9092
-inter.broker.listener.name=INTERNAL" >> kafka_2.13-3.7.0/config/server.properties
+inter.broker.listener.name=INTERNAL" >> kafka_2.13-3.8.0/config/server.properties

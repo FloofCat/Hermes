@@ -1,4 +1,4 @@
-from .APIFramework import APIFramework
+from APIFramework import APIFramework
 import zmq
 import json
 
